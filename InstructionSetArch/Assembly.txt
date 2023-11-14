@@ -1,0 +1,183 @@
+# RISCV Assembly Language Conversion
+
+# Note: The HLL and Assembly Code below are self-generated.
+
+1. Recursion
+
+	public int recursionTest(int n) {
+		if (n <= 1) {
+			return 1;
+		} else {
+			return n * recursionTest(n - 1);
+		}
+	}
+
+	RISC-V:
+
+# a0 = n
+
+recursionTest:
+	addi t0, x0, 1
+	bgt a0, t0, ELSE
+	addi a0, x0, 1
+	j ra
+	# RETURN
+ELSE:
+	addi sp, sp, -8
+	sw a0, 0(sp)
+	sw ra, 4(sp)
+	subi a0, a0, 1
+	jal ra, recursionTest
+
+	add t0, x0, a0			 # return value from recursive call
+	lw a0, 0(sp)
+	lw ra, 4(sp)
+	addi sp, sp, 8
+	mul a0, a0, t0
+	j ra
+	# RETURN
+DONE:
+	ret
+
+
+2. Branch
+
+	public int branchTest(int n) {
+		// even
+		if (n % 2 == 0) {
+			return 0;
+		} else {
+			return 1;
+		}
+	}
+
+	RISC-V:
+
+# a0 = n
+
+branchTest:
+	addi t0, x0, 1
+	and t1, a0, t0
+	beq t0, t1, ELSE		# if a0 is odd, jump to ELSE label
+	add a0, x0, x0
+	ret
+ELSE:
+	addi a0, x0, 1
+	ret
+
+
+
+3. Loop
+
+	public int loopTest(int n) {
+		if (n < 0) {
+			return 0;
+		}
+		int i = 1;
+		int sum = 0;
+		while (i <= n) {
+			if (i % 2 == 0) {
+				sum++;
+			}
+			i++;
+		}
+
+		return sum;
+	}
+
+	RISC-V:
+
+
+# a0 = n, t0 = i, t1 = sum
+
+loopTest:
+	bge x0, a0, LOOP
+	add a0, x0, x0
+	ret
+	# RETURN
+LOOP:
+	addi t0, x0, 1			# i = 1
+	add t1, x0, x0			# sum = 0
+While:
+	bgt t0, a0, END
+	addi t2, x0, 1
+	and t3, t2, a0 			# parity check
+	beq t3, t2, INC			# odd number found
+	addi t1, t1, 1
+	j INC
+INC:
+	addi t0, t0, 1
+	j While
+
+END:
+	add a0, t1, x0
+	ret
+
+
+
+4. Caller/Callee
+
+
+	// Square even numbers
+	// return 1 otherwise
+	public int helperFuncTest(int n) {
+		
+		if (n % 2 == 0) {
+			return helperTest(n);
+		} else {
+			return 1;
+		}
+	}
+
+	public int helperTest(int n) {
+		return square(n);
+	}
+
+	public int square(int n) {
+		return n * n;
+	}
+
+	RISC-V:
+
+# a0 = n
+
+helperFuncTest:
+	addi t0, x0, 1
+	and t1, t0, a0
+	beq t1, t0, ELSE
+	addi sp, sp, -8
+	sw ra, 0(sp)
+	sw a0, 4(sp)
+	j helperTest
+	lw ra, 0(sp)
+	addi sp, sp, 8
+	j DONE
+ELSE:
+	addi a0, x0, 1
+	j DONE
+DONE:
+	j ra
+	# RETURN
+
+
+# a0 = n
+
+helperTest:
+	addi sp, sp, -8
+	sw a0, 4(sp)
+	sw ra, 0(sp)
+	j square
+	lw ra, 0(sp)
+	addi sp, sp, 8
+	j ra
+
+
+# a0 = n
+
+square:
+	mul a0, a0, a0
+	j ra
+
+
+
+
