@@ -1,0 +1,77 @@
+# REFERENCE https://inst.eecs.berkeley.edu/~cs61c/resources/MIPS_help.html
+# ISA Encoding https://inst.eecs.berkeley.edu/~cs61c/resources/su18_lec/Lecture7.pdf
+
+# a0 = n
+
+recursionTest:
+	addi t0, x0, 1
+	bgt a0, t0, ELSE
+	addi a0, x0, 1
+	j ra
+	# RETURN
+ELSE:
+	addi sp, sp, -8
+	sw a0, 0(sp)
+	sw ra, 4(sp)
+	subi a0, a0, 1
+	jal ra, recursionTest
+
+	add t0, x0, a0			 # return value from recursive call
+	lw a0, 0(sp)
+	lw ra, 4(sp)
+	addi sp, sp, 8
+	mul a0, a0, t0
+	j ra
+	# RETURN
+DONE:
+	ret
+
+
+
+I-opcode => 0010011
+R-opcode => 0110011
+J-opcode => 0110111 (jump)
+SB-opcode => 1100011 (branch)
+S-opcode => 0000011 / 0100011 (lw/sw) (x3 / x14)
+
+add funct7, funct3 => 0000000, 000
+sub funct7, funct3 => 0100000, 000
+mul funct7, funct3 => 0000001, 000
+
+addi funct3 => 000
+subi funct3 => 000
+
+sw funct3 => 000
+lw funct3 => 001
+
+bgt funct3 => $ADDR$ 001
+bge funct3 => $ADDR$ 000
+
+x0 => 00000
+t0 - t3 => 00001 - 00100
+a0 - a3 => 10001 - 10100
+sp => 11110
+ra => 11111
+
+
+
+MACHINE
+
+000000000001 00000 000 00001 0010011
+$ADDR$[12,10:5,4:1,11](12) 00001 10001 000 1100011
+000000000001 00000 000 10001 0010011
+$ADDR$[31:12](20) 11111 0110011
+
+100000001000 11110 000 11110 0010011
+$ADDR$[11:5](7) 11110 10001 000 00000 0100011
+$ADDR$[11:5](7) 11110 11111 000 00100 0100011
+000000000001 10001 000 10001 0010011
+(jal ra, recursionTest)
+0000000 00000 10001 000 000001 0110011
+$ADDR$[11:5](7) 11110 10001 000 00000 0000011
+$ADDR$[11:5](7) 11110 11111 000 00100 0000011
+000000001000 11110 000 11110 0010011
+00000001 00001 10001 000 10001 0110011
+$ADDR$[31:12](20) 11111 0110111
+
+END OF PROGRAM
